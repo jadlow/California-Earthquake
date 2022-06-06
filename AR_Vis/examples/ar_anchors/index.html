@@ -1,0 +1,406 @@
+<html>
+	<!-- Any copyright is dedicated to the Public Domain.
+		http://creativecommons.org/publicdomain/zero/1.0/
+	-->
+	<head>
+		<title>AR anchors example</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<script src="../libs/three/three.min.js"></script>
+		<link rel="stylesheet" href="../common.css"/>
+	</head>
+	<body>
+		<div id="description">
+			<h2>AR Earthquake Visualization</h2>
+			<p>3D map of California created in front the device when the user taps on the screen. Must use Mozilla XRViewer available on IOS.</p>
+		</div>
+		<button type=button id=go-button>Go</button>
+		<script type=module>
+			// some dependencies and utilities
+			import * as mat4 from '../libs/gl-matrix/mat4.js';
+			import * as vec3 from '../libs/gl-matrix/vec3.js';
+
+			import XREngine from "../XREngine.js";
+
+			let session = null;
+			let engine = null;
+			let inputSource = null;
+			let isSelecting = false;
+
+			// we can save the eyeLevel FOR because in this implementation
+			// it doesn't have state (the head-model FOR does, and shouldn't be cached,
+			// which should be fixed)
+			let localReferenceSpace = null;
+			let viewerReferenceSpace = null;
+
+			// temporary working variables
+			const workingMatrix = mat4.create();
+			const workingVec3 = vec3.create();
+
+			const goButton = document.getElementById('go-button');
+
+			const initXR = () => {
+				if (navigator.xr) {
+					navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+						if (supported) {
+							goButton.disabled = false;
+							goButton.addEventListener('click', onButtonClick);
+						} else {
+							goButton.initText = 'No WebXR AR support';
+						}
+					});
+				} else {
+					goButton.initText = 'No WebXR support';
+				}
+			};
+
+			const onButtonClick = event => {
+				if (!session) {
+					navigator.xr.requestSession('immersive-ar', {requiredFeatures: ['hit-test']})
+						.then(xrSession => {
+							initSession(xrSession);
+							goButton.innerText = 'End';
+						}).catch(err => {
+							console.error('Session setup error', err);
+						});
+				} else {
+					session.end();
+				}
+			};
+
+			const initSession = async xrSession => {
+				session = xrSession;
+				session.addEventListener('end', onSessionEnd);
+				session.addEventListener('select', onSelect);
+				session.addEventListener('inputsourceschange', onInputSourcesChange);
+
+				localReferenceSpace = await session.requestReferenceSpace('local');
+				viewerReferenceSpace = await session.requestReferenceSpace('viewer');
+
+				// Create the context where we will render our 3D scene
+				const canvas = document.createElement('canvas');
+				const context = canvas.getContext('webgl', {
+					xrCompatible: true
+				});
+
+				if (!context) throw new Error('Could not create a webgl context');
+
+				// Set up the base layer
+				session.updateRenderState({baseLayer: new XRWebGLLayer(session, context)});
+
+				// Create a simple test scene and renderer
+				// The engine's scene is in the eye-level coordinate system 
+				engine = new XREngine(canvas, context);
+
+				// get the location of the device, and use it to create an
+				// anchor with the identity orientation
+				session.requestAnimationFrame(async (t, frame) => {
+					mat4.copy(workingMatrix, frame.getPose(localReferenceSpace, viewerReferenceSpace).transform.matrix);
+					mat4.getTranslation(workingVec3, workingMatrix);
+					mat4.fromTranslation(workingMatrix, workingVec3);
+
+					const anchor = await frame.addAnchor(workingMatrix, localReferenceSpace);
+					engine.addAnchoredNode(anchor, engine.root);
+
+					// Kick off rendering
+					session.requestAnimationFrame(handleAnimationFrame);
+				});
+
+				// initialize scene
+
+				engine.addAmbientLight();
+				engine.addDirectionalLight();
+			};
+
+			const onSessionEnd = event => {
+				session = null;
+				inputSource = null;
+				viewerReferenceSpace = null;
+				localReferenceSpace = null;
+				goButton.innerText = 'Go';
+			};
+
+			const onInputSourcesChange = event => {
+				if (inputSource && event.removed.includes(inputSource)) {
+					inputSource = null;
+				}
+				if (!inputSource && event.added.length > 0) {
+					inputSource = event.added[0];
+				}
+			};
+
+			const onSelect = event => {
+				isSelecting = true;
+			};
+
+			// Creates a box used to indicate the location of an anchor offset
+			const createSceneGraphNode = () => {
+				function perc2color(perc,min,max) {
+                    var base = (max - min);
+
+                    if (base == 0) { perc = 100; }
+                    else {
+                        perc = (perc - min) / base * 100; 
+                    }
+                    var r, g, b = 0;
+                    if (perc < 50) {
+                        r = 255;
+                        g = Math.round(5.1 * perc);
+                    }
+                    else {
+                        g = 255;
+                        r = Math.round(510 - 5.10 * perc);
+                    }
+                    var h = r * 0x10000 + g * 0x100 + b * 0x1;
+                    return '#' + ('000000' + h.toString(16)).slice(-6);
+                }
+      
+                // calculate maximum Eq value for input counties dictionary ( used for color scale )
+                function getMaxEq( counties ) {
+                    let maxEq = 0
+                    for ( let county of counties ) {
+                    if ( county.properties.EQ > maxEq ) {
+                        maxEq = county.properties.EQ
+                    }
+                    }
+                    return maxEq
+                };
+
+				// calculate maximum BUILDING value for input counties dictionary ( used for legend scale )
+				function getMaxSPC( counties ) {
+					let maxSPC = 0
+					for ( let county of counties ) {
+					if ( county.properties.BUILDING > maxSPC ) {
+						maxSPC = county.properties.BUILDING
+					}
+					}
+					return maxSPC
+				};
+
+                // https://stackoverflow.com/questions/57743270/how-can-i-display-topojson-with-three-js-basic
+                function parseGEOJSON( county ) {
+                    // initialized list of shapes for a county
+                    const shapes = [];
+                    // access coordinates from geojson file
+                    const coordinates = county.geometry.coordinates;
+                    // iterate through each
+                    for ( let coordinate of coordinates ) {
+                    // handles counties with more than one shape
+                    if (county.geometry.type == 'MultiPolygon'){
+                        coordinate = coordinate[0]
+                    }
+                    const points = [];
+                    // contour
+                        
+                    const contour = coordinate;
+                        
+                    for ( let point of contour ) {
+                    
+                        points.push( new THREE.Vector2( point[ 0 ], point[ 1 ] ) );
+                        
+                    }
+                        
+                    const shape = new THREE.Shape( points );
+                    // add shape to list of county's shapes
+                    shapes.push( shape );
+                    
+                    }
+                    // thickness of shape
+                    const geometry = new THREE.ExtrudeBufferGeometry( shapes, {
+                    depth: 0.01 * county.properties.BUILDING,
+                    bevelEnabled: false
+                    } );
+					geometry.translate(119.39, -37.1967, 0);
+					geometry.rotateY(3.14159);
+        			geometry.rotateX(0.785398*2);
+                    return geometry;
+                };
+
+				function makeLabelCanvas(size, name) {
+					const borderSize = 2;
+					const ctx = document.createElement('canvas').getContext('2d');
+					const font =  `${size}px bold sans-serif`;
+					ctx.font = font;
+					// measure how long the name will be
+					const doubleBorderSize = borderSize * 2;
+					const width = ctx.measureText(name).width + doubleBorderSize;
+					const height = size + doubleBorderSize;
+					ctx.canvas.width = width;
+					ctx.canvas.height = height;
+			
+					// need to set font again after resizing canvas
+					ctx.font = font;
+					ctx.textBaseline = 'top';
+			
+					ctx.fillStyle = 'white';
+					ctx.fillText(name, borderSize, borderSize);
+			
+					return ctx.canvas;
+				};
+
+				function makeLabel(size, name, root, dX, dY, dZ) {
+					const canvas = makeLabelCanvas(size, name);
+					const texture = new THREE.CanvasTexture(canvas);
+					// because our canvas is likely not a power of 2
+					// in both dimensions set the filtering appropriately.
+					texture.minFilter = THREE.LinearFilter;
+					texture.wrapS = THREE.ClampToEdgeWrapping;
+					texture.wrapT = THREE.ClampToEdgeWrapping;
+			
+					const labelMaterial = new THREE.SpriteMaterial({
+						map: texture,
+						transparent: true,
+					});
+			
+					const label = new THREE.Sprite(labelMaterial);
+					root.add(label);
+					label.position.y -= dY;
+					label.position.x -= dX;
+					label.position.z -= dZ;
+			
+					// if units are meters then 0.01 here makes size
+					// of the label into centimeters.
+					const labelBaseScale = 0.01;
+					label.scale.x = canvas.width  * labelBaseScale;
+					label.scale.y = canvas.height * labelBaseScale;
+				};
+
+				function createLegend(group, max_eq, max_spc){
+					var numBoxes = 8;
+					var deltaEQ = max_eq / (numBoxes-1);
+					for (var x = 0; x < numBoxes; x ++) {
+						const boxGeometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
+						const boxMaterial = new THREE.MeshBasicMaterial( {color: perc2color(parseInt(deltaEQ * x), max_eq, 0)} );
+						const cube = new THREE.Mesh( boxGeometry, boxMaterial );
+						cube.translateX(-2 + 0.2 * x);
+						cube.translateY(-0.1);
+						cube.translateZ(2);
+						if (x == 4){
+						makeLabel(12, 'Earthquake Score', cube, 0, 0.4, 0);
+						}
+						makeLabel(10, parseInt(deltaEQ * x), cube, 0, 0.2, 0);
+						group.add( cube );
+					}
+
+					var deltaSPC = max_spc / (numBoxes-1);
+					var cubeSize = deltaSPC * 0.005 *2;
+					for (var x = 1; x < numBoxes; x ++) {
+						const boxGeometry = new THREE.BoxGeometry( 0.2, 0.01, 0.2 );
+						const boxMaterial = new THREE.MeshBasicMaterial( {color: 'white'} );
+						const cube = new THREE.Mesh( boxGeometry, boxMaterial );
+						cube.translateX(-2.2);
+						cube.translateY(-0.075 + cubeSize * x);
+						cube.translateZ(2);
+						if (x == 4) {
+						makeLabel(12, 'Inverse SPC Sum', cube, 0.7, 0, 0);
+						}
+						makeLabel(10, parseInt(deltaSPC * x), cube, 0.2, 0, 0);
+						group.add( cube );
+					}
+				};
+
+				var group = new THREE.Group();
+				var group2 = new THREE.Group();
+
+                fetch( 'ca_counties_building.geojson' )
+                    .then( ( response ) => {
+                    return response.json();
+                        } )
+                        .then( ( json ) => {
+							const counties = json.features;
+							const max_eq = getMaxEq(counties);
+							const max_spc = getMaxSPC(counties);
+							for ( let county of counties){
+								var geometry = parseGEOJSON( county );
+								var material = new THREE.MeshLambertMaterial( { color: perc2color(county.properties.EQ, max_eq, 0) } );
+								var mesh = new THREE.Mesh( geometry, material );
+								//https://stackoverflow.com/questions/27853253/in-three-js-how-can-i-give-my-shapes-custom-edge-colors-not-just-setting-wir
+								// var edges = new THREE.EdgesHelper( mesh, 0x000000);
+								// edges.material.linewidth = 2;
+								// group.add(edges);
+								var minCoord;
+								var maxCoord;
+								if (county.geometry.type == 'MultiPolygon'){
+									minCoord = county.geometry.coordinates[0][0][0];
+									maxCoord = county.geometry.coordinates[0][0][0];
+									for ( let polygon in county.geometry.coordinates){
+									for ( let coord in county.geometry.coordinates[polygon]){
+									if (county.geometry.coordinates[polygon][0][coord][1] > maxCoord[1]){
+										maxCoord = county.geometry.coordinates[polygon][0][coord];
+									} 
+									if (county.geometry.coordinates[polygon][0][coord][0] < minCoord[0]){
+										minCoord = county.geometry.coordinates[polygon][0][coord];
+									} 
+									}
+									}
+								}else{
+									minCoord = county.geometry.coordinates[0][0];
+									maxCoord = county.geometry.coordinates[0][0];
+									for ( let coord in county.geometry.coordinates[0]){
+									if (county.geometry.coordinates[0][coord][1] > maxCoord[1]){
+										maxCoord = county.geometry.coordinates[0][coord];
+									} 
+									if (county.geometry.coordinates[0][coord][0] < minCoord[0]){
+										minCoord = county.geometry.coordinates[0][coord];
+									} 
+									}
+								}
+								makeLabel(
+									20, county.properties.NAME, mesh, 
+									(((minCoord[0] + maxCoord[0])/2 + 119.39) ) +0.2,
+									0.01 * county.properties.BUILDING * -1 -0.1,
+									-(((minCoord[1] + maxCoord[1])/2 - 37.1967)) +0.2,
+									);
+									group.add( mesh );
+                    		}
+							createLegend(group, max_eq, max_spc);
+							group.scale.set(0.1,0.1,0.1);
+							group2.add(group);
+                    // new THREE.Box3().setFromObject( group ).getCenter( group.position ).multiplyScalar( - 1 );
+                        } );
+				return group2;
+			};
+
+			var placed = false;
+			// render loop			
+			const handleAnimationFrame = (t, frame) => {
+				if(!session || session.ended) return;
+
+				session.requestAnimationFrame(handleAnimationFrame);
+
+				const viewerPose = frame.getViewerPose(localReferenceSpace);
+				if (!viewerPose){
+					console.log('No pose');
+					return;
+				}
+				if (isSelecting && inputSource ) {
+					if (!placed){
+						const inputPose = frame.getPose(inputSource.targetRaySpace, localReferenceSpace);
+						vec3.set(workingVec3, 0, 0, -1.0);
+						mat4.fromTranslation(workingMatrix, workingVec3);
+						mat4.multiply(workingMatrix, inputPose.transform.matrix, workingMatrix);
+						frame.addAnchor(workingMatrix, localReferenceSpace).then(anchor => {
+							engine.addAnchoredNode(anchor, createSceneGraphNode());
+						}).catch(err => {
+							console.error('Error adding anchor', err);
+						});
+						placed = true;
+					}
+				}
+
+				engine.startFrame();
+				for (const view of viewerPose.views) {
+					engine.preRender(
+						session.renderState.baseLayer.getViewport(view),
+						view.projectionMatrix,
+						view.transform.matrix
+					);
+					engine.render();
+				}
+				engine.endFrame();
+			};
+
+			initXR();
+		</script>
+	</body>
+</html>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AR Earthquake</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body id="myPage">
+
+<!-- Navbar -->
+<div class="w3-top">
+ <div class="w3-bar w3-theme-d2 w3-left-align">
+  <a class="w3-bar-item w3-button w3-hide-small w3-hover-white" href="./AR_Vis/examples/ar_anchors/">AR Visualization</a>
+  <a href="./WEB_Vis/eq.html" class="w3-bar-item w3-button w3-hide-small w3-hover-white">Web Visualization</a>
+  <a href="./D3_Vis/index.html" class="w3-bar-item w3-button w3-hide-small w3-hover-white">D3 Visualization</a>
+  <a class="w3-bar-item w3-button w3-hide-small w3-hover-white" href="./tech_paper.pdf" >Technical Report</a>
+  
+ </div>
+</div>
+
+<!-- Image Header -->
+<div class="w3-display-container w3-animate-opacity">
+  <img src="./images/earthquake_background.jpg" alt="boat" style="width:100%;min-height:350px;max-height:600px;">
+  <div class="w3-container w3-display-bottomleft w3-margin-bottom">  
+    <a class="w3-xxxlarge w3-button w3-theme" href="./AR_Vis/examples/ar_anchors/" >AR Earthquake</a>
+  </div>
+</div>
+
+<!-- Team Container -->
+<div class="w3-container w3-padding-64 w3-center" id="team">
+<h2>Jacob Low</h2>
+<p>
+  CSE 161 Intro to Data Visualization 
+  <br>
+  Spring 2022
+</p>
+</div>
+
+
+<!-- Work Row -->
+<div class="w3-row-padding w3-padding-64 w3-theme-l1" id="work">
+
+<div class="w3-full w3-center">
+<h2>Project Description</h2>
+<p>
+Home to the San Andreas Fault line, California is accustomed to earthquakes. Although the majority of earthquakes
+typically have little to no consequences, they can be extremely dangerous, especially in areas with unsafe buildings and infrastructure.
+The Loma Prieta earthquake of 1989 struck San Francisco, resulting in the loss of 63 lives, over 3,800 injuries, and $6 billion dollars of
+property damage. Although many improvements have been made such as seismic retrofitting to brides and buildings, there are still
+many areas across California with buildings unable to withstand a significant earthquake. This visualization explores the correlation
+between historical earthquake data and seismic ratings of California hospitals using a 3D bar chart overlaying a 2D map of California with AR capabilities.
+</p>
+</div>
+
+<div class="w3-quarter">
+<div class="w3-card w3-white">
+  <img src="./images/2D_map.png" alt="2D" style="width:100%">
+  <div class="w3-container">
+  <h3>2D Map of California by County</h3>
+  </div>
+  </div>
+</div>
+
+<div class="w3-quarter">
+<div class="w3-card w3-white">
+  <img src="./images/extruded_shapes.png" alt="extrude" style="width:100%">
+  <div class="w3-container">
+  <h3>Extruded County Shapes</h3>
+  <h4>The height of each county corresponds to the number of unsafe buildings within the county.</h4>
+  </div>
+  </div>
+</div>
+
+<div class="w3-quarter">
+<div class="w3-card w3-white">
+  <img src="./images/colored_shapes.png" alt="color" style="width:100%">
+  <div class="w3-container">
+  <h3>Color Scale</h3>
+  <h4>The color of each county corresponds to the historical earthquake activity within the county.</h4>
+  </div>
+  </div>
+</div>
+
+<div class="w3-quarter">
+  <div class="w3-card w3-white">
+    <img src="./images/three_final.png" alt="color" style="width:100%">
+    <div class="w3-container">
+    <h3>Final Three.js Implementation</h3>
+    <h4>Complete visualization with legend and county labels.</h4>
+    </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="w3-row-padding w3-padding-64 w3-theme-l5" id="work">
+
+  <div class="w3-full w3-center">
+  <h2>AR Capabilites</h2>
+  </div>
+  
+  <div class="w3-half">
+  <div class="w3-card w3-white">
+    <img src="./images/AR_vis.jpg" alt="AR" style="width:100%">
+    <div class="w3-container">
+    <h3>Screenshot from AR Visualization</h3>
+    </div>
+    </div>
+  </div>
+
+  <div class="w3-half w3-center">
+    <h3>Method</h3>
+  <h4>
+    The Mozilla WebXR Viewer and XREngine library implement
+    the Three.js scene as an AR visualization tool. I chose to use these
+    tools because they are compatible with IOS devices. However, the XREngine is not compatible with most browsers
+    such as Chrome or Safari, so the Mozilla XRViewer application must be used to display the visualization.
+    Starting from the ”AR Anchor” example provided in the
+    WebXR Viewer Standard Examples, I modified the program
+    to display the 3D earthquake scene on interaction instead
+    of a simple cube. When the user taps the screen, the visualization is placed such that the
+    plane parallel to the 2D map is perpendicular to the AR
+    device. Once the visualization has been anchored, the user
+    can view it from any angle with the AR capabilities.
+  </h4>
+    <h3>Results</h3>
+    <h4>
+      The 3D map visualization with AR capabilities can
+      be used to identify which counties in California need to
+      improve their infrastructure to increase public safety. For
+      example, San Bernardino County has the third highest bar
+      height and is colored orange. This means the county has
+      significant earthquake history and many buildings with
+      low SPC ratings. In the event of a major earthquake event,
+      San Bernardino is more likely to endure property damage
+      compared to most other counties.
+    </h4>
+  </div>
+  
+  </div>
+
+  <div class="w3-row-padding w3-padding-64 w3-theme-l3" id="work">
+
+    <div class="w3-full w3-center">
+    <h2>D3 Visualization</h2>
+    <h4>This visualization uses D3 to visualize the SPC Score and Earthquake Score data using a threshold color mapping. Toggle 
+      between the two visualizations with the "Building Mode" and "Earthquake Mode" buttons.<br>
+      Since there are outliers such as Los Angeles in the SPC data, this color mapping is useful when comparing counties with
+      lower SPC Scores. Built off of Mike Bostock's <a href="https://bl.ocks.org/mbostock/5562380">California Population Density</a>.
+<br><br>
+      The "Combined" button will display a visualization representing the Risk Score for each county. The risk score is a normalized sum of the county's SPC Score and Earthquake Score.</h4>
+    <button onclick="update(data, 0)" class="w3-xlarge w3-hover-white w3-theme">Building Mode</button>
+    <button onclick="update(data, 2)" class="w3-xlarge w3-hover-white w3-theme">Earthquake Mode</button>
+    <button onclick="update(data, 1)" class="w3-xlarge w3-hover-white w3-theme">Combined</button>
+    <svg width="960" height="1100"></svg>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://d3js.org/topojson.v2.min.js"></script>
+    <style>
+      div.tooltip {
+      position: absolute;
+      width: 200;
+      height: 200;
+      padding: 10px;
+      background-color: #000000;
+      color: white;
+      border-radius: 10px;
+  }
+  </style>
+  <script>
+  
+  var svg = d3.select("svg"),
+      width = +svg.attr("width"),
+      height = +svg.attr("height");
+      
+  var tooltip = d3.select("body").append("div")
+                      .attr("class", "tooltip")
+                      .style("opacity", 0);
+  
+  var projection = d3.geoIdentity()
+    .reflectY(true)
+  
+  var path = d3.geoPath().projection(projection);
+  
+  var color = d3.scaleThreshold()
+      .domain([0, 5, 10, 20, 50, 100, 150, 200])
+      .range(d3.schemeBlues[9]);
+  
+  var x = d3.scaleSqrt()
+      .domain([0, 200])
+      .rangeRound([440, 950]);
+  
+  var color2 = d3.scaleThreshold()
+      .domain([0, 10, 20, 40, 80, 160, 320, 388])
+      .range(d3.schemeOrRd[9]);
+  
+  var x2 = d3.scaleSqrt()
+      .domain([0, 388])
+      .rangeRound([440, 950]);
+  
+  var color3 = d3.scaleThreshold()
+      .domain([0, 2, 4, 6, 8, 10, 12])
+      .range(d3.schemePurples[8]);
+  
+  var x3 = d3.scaleSqrt()
+      .domain([0, 12])
+      .rangeRound([440, 950]);
+  
+  var legend = svg.append("g")
+      .attr("class", "key")
+      .attr("transform", "translate(0,40)");
+  
+  legend.selectAll("rect")
+    .data(color.range().map(function(d) {
+        d = color.invertExtent(d);
+        if (d[0] == null) d[0] = x.domain()[0];
+        if (d[1] == null) d[1] = x.domain()[1];
+        return d;
+      }))
+    .enter().append("rect")
+      .attr("height", 8)
+      .attr("x", function(d) { return x(d[0]); })
+      .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+      .attr("fill", function(d) { return color(d[0]); });
+  
+  legend.append("text")
+      .attr("class", "caption")
+      .attr("x", x.range()[0])
+      .attr("y", -6)
+      .attr("fill", "#000")
+      .attr("text-anchor", "start")
+      .attr("font-weight", "bold")
+      .text("Building Score");
+  
+  legend.call(d3.axisBottom(x)
+      .tickSize(13)
+      .tickValues(color.domain()))
+    .select(".domain")
+      .remove();
+  
+  var data;
+  
+  // read in topojson file
+  d3.json("./D3_Vis/ca_counties_building.topojson", function(error, topology) {
+    if (error) throw error;
+    projection.fitSize([width, height], topojson.feature(topology, topology.objects.ca_counties_building))
+    console.log(topology)
+    counties = topojson.feature(topology, topology.objects.ca_counties_building).features
+    data = topology
+    var buildingMax = d3.max(counties, function(d) { return parseInt(d.properties.BUILDING); })
+    var buildingMin = d3.min(counties, function(d) { return parseInt(d.properties.BUILDING); })
+    var eqMax = d3.max(counties, function(d) { return parseInt(d.properties.EQ); })
+    var eqMin = d3.min(counties, function(d) { return parseInt(d.properties.EQ); })
+    for (var i = 0; i < counties.length; i++) {
+      var curEq = counties[i].properties.EQ
+      var curBuilding = counties[i].properties.BUILDING
+      counties[i].properties.SUM =  10 * parseFloat((curBuilding - buildingMin)/(buildingMax - buildingMin) + (curEq - eqMin)/(eqMax-eqMin))
+    }
+    var sumMax = d3.max(counties, function(d) { return d.properties.SUM; })
+    var sumMin = d3.min(counties, function(d) { return d.properties.SUM; })
+    console.log('building max: ' + buildingMax)
+    console.log('building min: ' + buildingMin)
+    console.log('eq max: ' + eqMax)
+    console.log('eq max: ' + eqMin)
+    console.log('sum max: ' + sumMax)
+    console.log('sum min: ' + sumMin)
+  // append each tract geometry
+    svg.append("g")
+      .selectAll("path")
+      .data(topojson.feature(topology, topology.objects.ca_counties_building).features)
+      .enter().append("path")
+  // color each geometry according to its density value stored within
+        .attr('stroke', 'black')
+        .attr("fill", function(d) { return color(d.properties.BUILDING); })
+        .attr("d", path)
+        .on("mousemove", function(d){
+              tooltip.transition()
+                      .duration(100)
+                      .style("opacity", .8);
+              tooltip.html(d.properties.NAME + "<br>" + "SPC Score: " + Number((d.properties.BUILDING).toFixed(1)) + 
+                          "<br>" + "Earthquake Score: " + Number((d.properties.EQ).toFixed(1)) +
+                          "<br>" + "Risk Score: " + Number((d.properties.SUM).toFixed(2)))
+                      .style("left", (d3.event.pageX + 30) + "px")
+                      .style("top", (d3.event.pageY - 30) + "px");})
+          .on("mouseout", function(d){
+              tooltip.transition()
+                  .duration(100)
+                  .style("opacity", 0);});
+  });
+  
+  function update(topology, val) {
+      if (val == 0){
+          legend.selectAll("rect")
+              .data(color.range().map(function(d) {
+                  d = color.invertExtent(d);
+                  if (d[0] == null) d[0] = x.domain()[0];
+                  if (d[1] == null) d[1] = x.domain()[1];
+                  return d;
+                  }))
+              .attr("height", 8)
+              .transition().duration(500)
+              .attr("x", function(d) { return x(d[0]); })
+              .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+              .attr("fill", function(d) { return color(d[0]); });
+  
+          legend.selectAll(".caption")
+              .transition().duration(500)
+              .attr("class", "caption")
+              .attr("x", x.range()[0])
+              .attr("y", -6)
+              .attr("fill", "#000")
+              .attr("text-anchor", "start")
+              .attr("font-weight", "bold")
+              .text("Building Score");
+  
+          legend.call(d3.axisBottom(x)
+              .tickSize(13)
+              .tickValues(color.domain()))
+          .select(".domain")
+              .remove();
+          d3.selectAll("path")
+          // color each geometry according to its density value stored within
+              .attr('stroke', 'black')
+              .transition().duration(500)
+              .attr("fill", function(d) { return color(d.properties.BUILDING); });
+      } else if (val == 1){
+          legend.selectAll("rect")
+              .data(color3.range().map(function(d) {
+                  d = color3.invertExtent(d);
+                  if (d[0] == null) d[0] = x3.domain()[0];
+                  if (d[1] == null) d[1] = x3.domain()[1];
+                  return d;
+                  }))
+              .attr("height", 8)
+              .transition().duration(500)
+              .attr("x", function(d) { return x3(d[0]); })
+              .attr("width", function(d) {
+                  return x3(d[1]) - x3(d[0]); 
+              })
+              .attr("fill", function(d) { return color3(d[0]); });
+  
+          legend.selectAll(".caption")
+              .transition().duration(500)
+              .attr("class", "caption")
+              .attr("x", x3.range()[0])
+              .attr("y", -6)
+              .attr("fill", "#000")
+              .attr("text-anchor", "start")
+              .attr("font-weight", "bold")
+              .text("Risk Score");
+  
+          legend.call(d3.axisBottom(x3)
+              .tickSize(13)
+              .tickValues(color3.domain()))
+          .select(".domain")
+              .remove();
+  
+          d3.selectAll("path")
+          // color each geometry according to its density value stored within
+              .attr('stroke', 'black')
+              .transition().duration(500)
+              .attr("fill", function(d) { return color3(d.properties.SUM); });
+      } else {
+          legend.selectAll("rect")
+              .data(color2.range().map(function(d) {
+                  d = color2.invertExtent(d);
+                  if (d[0] == null) d[0] = x2.domain()[0];
+                  if (d[1] == null) d[1] = x2.domain()[1];
+                  return d;
+                  }))
+              .attr("height", 8)
+              .transition().duration(500)
+              .attr("x", function(d) { return x2(d[0]); })
+              .attr("width", function(d) { return x2(d[1]) - x2(d[0]); })
+              .attr("fill", function(d) { return color2(d[0]); });
+  
+          legend.selectAll(".caption")
+              .transition().duration(500)
+              .attr("class", "caption")
+              .attr("x", x2.range()[0])
+              .attr("y", -6)
+              .attr("fill", "#000")
+              .attr("text-anchor", "start")
+              .attr("font-weight", "bold")
+              .text("Earthquake Score");
+  
+          legend.call(d3.axisBottom(x2)
+              .tickSize(13)
+              .tickValues(color2.domain()))
+          .select(".domain")
+              .remove();
+  
+          d3.selectAll("path")
+              // color each geometry according to its density value stored within
+              .attr('stroke', 'black')
+              .transition().duration(500)
+              .attr("fill", function(d) { return color2(d.properties.EQ); });
+      }
+  }
+  
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!--Starter code taken from CSE160 ASG 5
+https://www.norfolk.gov/DocumentCenter/View/2556/Earthquake-Information?bidId=#:~:text=A%20magnitude%204.0%20eastern%20U.S.,damage%20out%20to%2025%20miles.
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AR Earthquake</title>
+  </head>
+  <body>
+    <canvas id="c" width="1280" height="720" style="touch-action: none"></canvas>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from 'three';
+      import {OrbitControls} from './node_modules/three/examples/jsm/controls/OrbitControls.js';
+
+      main();
+      // https://gist.github.com/mlocati/7210513
+      // standard RGB rainbow color scale function
+      function perc2color(perc,min,max) {
+            var base = (max - min);
+
+            if (base == 0) { perc = 100; }
+            else {
+                perc = (perc - min) / base * 100; 
+            }
+            var r, g, b = 0;
+            if (perc < 50) {
+                r = 255;
+                g = Math.round(5.1 * perc);
+            }
+            else {
+                g = 255;
+                r = Math.round(510 - 5.10 * perc);
+            }
+            var h = r * 0x10000 + g * 0x100 + b * 0x1;
+            return '#' + ('000000' + h.toString(16)).slice(-6);
+        }
+      
+      // calculate maximum Eq value for input counties dictionary ( used for legend + color scale )
+      function getMaxEq( counties ) {
+        let maxEq = 0
+        for ( let county of counties ) {
+          if ( county.properties.EQ > maxEq ) {
+            maxEq = county.properties.EQ
+          }
+        }
+        return maxEq
+      };
+      
+      // calculate maximum BUILDING value for input counties dictionary ( used for legend scale )
+      function getMaxSPC( counties ) {
+        let maxSPC = 0
+        for ( let county of counties ) {
+          if ( county.properties.BUILDING > maxSPC ) {
+            maxSPC = county.properties.BUILDING
+          }
+        }
+        return maxSPC
+      };
+
+      function makeLabelCanvas(size, name) {
+					const borderSize = 2;
+					const ctx = document.createElement('canvas').getContext('2d');
+					const font =  `${size}px bold sans-serif`;
+					ctx.font = font;
+					// measure how long the name will be
+					const doubleBorderSize = borderSize * 2;
+					const width = ctx.measureText(name).width + doubleBorderSize;
+					const height = size + doubleBorderSize;
+					ctx.canvas.width = width;
+					ctx.canvas.height = height;
+			
+					// need to set font again after resizing canvas
+					ctx.font = font;
+					ctx.textBaseline = 'top';
+			
+					ctx.fillStyle = 'white';
+					ctx.fillText(name, borderSize, borderSize);
+			
+					return ctx.canvas;
+				}
+
+				function makeLabel(size, name, root, dX, dY, dZ) {
+					const canvas = makeLabelCanvas(size, name);
+					const texture = new THREE.CanvasTexture(canvas);
+					// because our canvas is likely not a power of 2
+					// in both dimensions set the filtering appropriately.
+					texture.minFilter = THREE.LinearFilter;
+					texture.wrapS = THREE.ClampToEdgeWrapping;
+					texture.wrapT = THREE.ClampToEdgeWrapping;
+			
+					const labelMaterial = new THREE.SpriteMaterial({
+						map: texture,
+						transparent: true,
+					});
+			
+					const label = new THREE.Sprite(labelMaterial);
+					root.add(label);
+					label.position.y -= dY;
+          label.position.x -= dX;
+          label.position.z -= dZ;
+			
+					// if units are meters then 0.01 here makes size
+					// of the label into centimeters.
+					const labelBaseScale = 0.01;
+					label.scale.x = canvas.width  * labelBaseScale;
+					label.scale.y = canvas.height * labelBaseScale;
+				}
+        
+      function main() {
+        const canvas = document.querySelector('#c');
+        const renderer = new THREE.WebGLRenderer({canvas});
+
+        // Camera
+        const fov = 70;
+        const aspect = 2;  // the canvas default
+        const near = 0.1;
+        const far = 100;
+        const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        camera.position.set(0,0,8);
+
+        const scene = new THREE.Scene();
+
+        fetch( 'ca_counties_building.geojson' )
+		    .then( ( response ) => {
+    	  return response.json();
+ 		    } )
+		    .then( ( json ) => {
+        var group = new THREE.Group();
+        const counties = json.features;
+        const max_eq = getMaxEq(counties);
+        const max_spc = getMaxSPC(counties);
+        console.log(counties)
+        for ( let county of counties){
+          var geometry = parseGEOJSON( county );
+          var material = new THREE.MeshLambertMaterial( { color: perc2color(county.properties.EQ, max_eq, 0) } );
+          var mesh = new THREE.Mesh( geometry, material );
+          //https://stackoverflow.com/questions/27853253/in-three-js-how-can-i-give-my-shapes-custom-edge-colors-not-just-setting-wir
+          // var edges = new THREE.EdgesHelper( mesh, 0x000000);
+          // edges.material.linewidth = 20;
+          // group.add(edges);
+          var minCoord;
+          var maxCoord;
+          if (county.geometry.type == 'MultiPolygon'){
+            minCoord = county.geometry.coordinates[0][0][0];
+            maxCoord = county.geometry.coordinates[0][0][0];
+            for ( let polygon in county.geometry.coordinates){
+              for ( let coord in county.geometry.coordinates[polygon]){
+              if (county.geometry.coordinates[polygon][0][coord][1] > maxCoord[1]){
+                maxCoord = county.geometry.coordinates[polygon][0][coord];
+              } 
+              if (county.geometry.coordinates[polygon][0][coord][0] < minCoord[0]){
+                minCoord = county.geometry.coordinates[polygon][0][coord];
+              } 
+            }
+            }
+          }else{
+            minCoord = county.geometry.coordinates[0][0];
+            maxCoord = county.geometry.coordinates[0][0];
+            for ( let coord in county.geometry.coordinates[0]){
+              if (county.geometry.coordinates[0][coord][1] > maxCoord[1]){
+                maxCoord = county.geometry.coordinates[0][coord];
+              } 
+              if (county.geometry.coordinates[0][coord][0] < minCoord[0]){
+                minCoord = county.geometry.coordinates[0][coord];
+              } 
+            }
+          }
+          makeLabel(
+            20, county.properties.NAME, mesh, 
+            (((minCoord[0] + maxCoord[0])/2 + 119.39)) +0.2,
+            0.01 * county.properties.BUILDING * (-1) -0.1,
+            -(((minCoord[1] + maxCoord[1])/2 - 37.1967)) +0.2,
+            );
+    	    group.add( mesh );
+        }
+        scene.add(group);
+        createLegend(max_eq, max_spc);
+		    } );
+
+        function createLegend(max_eq, max_spc){
+          var numBoxes = 8;
+          var deltaEQ = max_eq / (numBoxes-1);
+          for (var x = 0; x < numBoxes; x ++) {
+            const boxGeometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
+            const boxMaterial = new THREE.MeshBasicMaterial( {color: perc2color(parseInt(deltaEQ * x), max_eq, 0)} );
+            const cube = new THREE.Mesh( boxGeometry, boxMaterial );
+            cube.translateX(-2 + 0.2 * x);
+            cube.translateY(-0.1);
+            cube.translateZ(2);
+            if (x == 4){
+              makeLabel(12, 'Earthquake Score', cube, 0, 0.4, 0);
+            }
+            makeLabel(10, parseInt(deltaEQ * x), cube, 0, 0.2, 0);
+            scene.add( cube );
+          }
+
+          var deltaSPC = max_spc / (numBoxes-1);
+          var cubeSize = deltaSPC * 0.005*2;
+          for (var x = 1; x < numBoxes; x ++) {
+            const boxGeometry = new THREE.BoxGeometry( 0.2, 0.01, 0.2 );
+            const boxMaterial = new THREE.MeshBasicMaterial( {color: 'white'} );
+            const cube = new THREE.Mesh( boxGeometry, boxMaterial );
+            cube.translateX(-2.2);
+            cube.translateY(-0.075 + cubeSize * x);
+            cube.translateZ(2);
+            if (x == 4) {
+              makeLabel(12, 'Inverse SPC Sum', cube, 0.7, 0, 0);
+            }
+            makeLabel(10, parseInt(deltaSPC * x), cube, 0.2, 0, 0);
+            scene.add( cube );
+          }
+        };
+
+        // Orbit Controls
+        const controls = new OrbitControls(camera, canvas);
+        controls.target.set(0,0,0);
+        controls.update();
+
+        // Ambient Light
+        {
+          const color = 0xFFFFFF;
+          const intensity = 0.5;
+          const ambientLight = new THREE.AmbientLight(color, intensity);
+          scene.add(ambientLight);
+        }
+
+        {
+          const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+          scene.add( directionalLight );
+        }
+
+        function resizeRendererToDisplaySize(renderer) {
+          const canvas = renderer.domElement;
+          const width = canvas.clientWidth;
+          const height = canvas.clientHeight;
+          const needResize = canvas.width !== width || canvas.height !== height;
+          if (needResize) {
+            renderer.setSize(width, height, false);
+          }
+          return needResize;
+        }
+  
+        function render(time) {
+          time *= 0.001;  // convert time to seconds
+
+          if (resizeRendererToDisplaySize(renderer)) {
+            const canvas = renderer.domElement;
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+          }
+   
+          
+   
+          renderer.render(scene, camera);
+   
+          requestAnimationFrame(render);
+        }
+      requestAnimationFrame(render);
+      }
+
+      // https://stackoverflow.com/questions/57743270/how-can-i-display-topojson-with-three-js-basic
+      function parseGEOJSON( county ) {
+        // initialized list of shapes for a county
+        const shapes = [];
+        // access coordinates from geojson file
+        const coordinates = county.geometry.coordinates;
+        // iterate through each
+        for ( let coordinate of coordinates ) {
+          // handles counties with more than one shape
+          if (county.geometry.type == 'MultiPolygon'){
+            coordinate = coordinate[0]
+          }
+          const points = [];
+          // contour
+            
+          const contour = coordinate;
+            
+          for ( let point of contour ) {
+          
+            points.push( new THREE.Vector2( point[ 0 ], point[ 1 ] ) );
+            
+          }
+            
+          const shape = new THREE.Shape( points );
+          // add shape to list of county's shapes
+          shapes.push( shape );
+          
+        }
+        // thickness of shape
+        const geometry = new THREE.ExtrudeBufferGeometry( shapes, {
+          depth: 0.01 * county.properties.BUILDING,
+          bevelEnabled: false
+        } );
+        geometry.translate(119.39, -37.1967, 0);
+        geometry.scale(1,1,1);
+				geometry.rotateY(3.14159);
+        geometry.rotateX(0.785398*2);
+        return geometry;
+      }
+
+
+          
+      
+    </script>
+  </body>
+  
+</html>
