@@ -2,16 +2,16 @@
 
 USER INTERFACE
 
-To run the source code from your local machine, download the code from the repository. 
+To run the source code from your local machine, download the code from the repository. All three visualization are currently accessible in my public_html server provided by UCSC.
 
-The AR visualization is web-based and runs on the Mozilla XRViewer which is available on IOS devices. The 
-XREngine library files are included in the Git repository containing the source code, so no downloads are required.
+https://people.ucsc.edu/~jadlow/AREarthquake_web/
 
-The Three.js version of this visualization, the HTML page must be hosted on a local python server and 
-can be viewed on any web browser (Chrome, Firefox, etc). The Three.js library files are included in the 
-Git repository as well.
+The AR visualization is web-based and runs on the Mozilla XRViewer which is available on IOS devices. The HTML page 
+must be hosted on a server accessible to mobile devices. The XREngine library files are included in the Git repository containing the source code, so no downloads are required.
 
-I also created a choropleth map using D3 to further analyze the data that can be viewed on any web browser.
+The Three.js version of this visualization can be viewed on any web browser (Chrome, Firefox, etc). The Three.js library files are included in the Git repository as well. The HTML page must be hosted locally on a python server.
+
+I also created a choropleth map using D3 to further analyze the data that can be viewed on any web browser. The HTML page must be hosted locally on a python server.
 
 CODE DOCUMENTATION
 
